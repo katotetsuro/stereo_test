@@ -2,7 +2,7 @@
 
 using namespace ofxCv;
 
-const int camWidth = 320, camHeight = 240;
+const int camWidth = 640, camHeight = 480;
 
 //--------------------------------------------------------------
 void testApp::setup(){
@@ -24,6 +24,20 @@ void testApp::setup(){
     rightCalib.setPatternSize(4, 11);
     rightCalib.setPatternType(ASYMMETRIC_CIRCLES_GRID);
     rightCalib.setSquareSize(16.5);
+    
+    bm.init(StereoBM::BASIC_PRESET, 16*8, 11);
+    
+    // gui
+    gui.setup();
+    gui.add(minDisparitySlider.setup("min disparity", 0, -100, 100));
+    gui.add(disparitySlider.setup("disparity(x16)", 8, 1, 100));
+    gui.add(windowSizeSlider.setup("windowSize(2*v+1)", 5, 2, 50));
+    minDisparitySlider.addListener(this, &testApp::onBMSettingChanged);
+    disparitySlider.addListener(this, &testApp::onBMSettingChanged);
+    windowSizeSlider.addListener(this, &testApp::onBMSettingChanged);
+    
+    // gyaku
+    exchangeCamera();
 }
 
 //--------------------------------------------------------------
@@ -64,14 +78,14 @@ void testApp::update(){
         convertColor(rectifiedRight, rightGray, CV_RGB2GRAY);
         
         disparityRaw.create(camHeight, camWidth, CV_32FC1);
-        StereoBM bm(StereoBM::BASIC_PRESET, 16*8, 11);
         bm(leftGray, rightGray, disparityRaw, CV_32FC1);
         
+//        disparityRaw = disparityRaw.colRange(100+camWidth/3, camWidth/3*2).rowRange(camHeight/3, camHeight/3*2);
         double min, max;
         minMaxLoc(disparityRaw, &min, &max);
         
         if (!disparity.isAllocated()) {
-            disparity.allocate(camWidth, camHeight, OF_IMAGE_GRAYSCALE);
+            disparity.allocate(disparityRaw.cols, disparityRaw.rows, OF_IMAGE_GRAYSCALE);
         }
         m = toCv(disparity);
         disparityRaw.convertTo(m, CV_8UC1, 255.0/(max-min), -min/(max-min));
@@ -102,6 +116,8 @@ void testApp::draw(){
         disparity.draw(0, 0);
         ofPopMatrix();
     }
+    
+    gui.draw();
 }
 
 //--------------------------------------------------------------
@@ -125,6 +141,7 @@ void testApp::keyPressed(int key){
                 }
                 toast.addText("Saved");
             }
+            break;
             
         case 't':
             ofSaveImage(leftCam.getPixelsRef(), "left.jpg");
@@ -200,6 +217,12 @@ void testApp::calcRemap() {
     ofxCv::saveMat(P1, "leftnewcameramatrix.yml");
     ofxCv::saveMat(leftMapX, "leftmapx.yml");
     ofxCv::saveMat(leftMapY, "leftmapy.yml");
+}
+
+void testApp::onBMSettingChanged(int &i) {
+    ofLogNotice() << "changing block matching parameters";
+    bm.init(StereoBM::BASIC_PRESET, 16*disparitySlider, 2*windowSizeSlider+1);
+    bm.state->minDisparity = minDisparitySlider;
 }
 
 //--------------------------------------------------------------

@@ -3,6 +3,7 @@
 #include "ofMain.h"
 #include "ofxCv.h"
 #include "ofxToast.h"
+#include "ofxGui.h"
 
 class testApp : public ofBaseApp{
 
@@ -27,6 +28,9 @@ class testApp : public ofBaseApp{
     void tryLoad();
     void calcRemap();
     
+    // gui event listener
+    void onBMSettingChanged(int &i);
+    
 
     // offset = 1 if I have i-sight, so that there are 3 cameras.
     int offset;
@@ -42,4 +46,11 @@ class testApp : public ofBaseApp{
     ofImage disparity;
     
     ofxToast toast;
+    
+    // block matcher
+    cv::StereoBM bm;
+    
+    // gui
+    ofxPanel gui;
+    ofxIntSlider disparitySlider, windowSizeSlider, minDisparitySlider;
 };
